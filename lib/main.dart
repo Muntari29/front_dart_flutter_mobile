@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -38,16 +40,6 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -56,6 +48,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  String _response = "No response yet";
 
   void _incrementCounter() {
     setState(() {
@@ -66,6 +59,26 @@ class _MyHomePageState extends State<MyHomePage> {
       // called again, and so nothing would appear to happen.
       _counter++;
     });
+  }
+
+  Future<void> fetchPing() async {
+    try {
+      final response = await http.get(Uri.parse('http://localhost:8080/ping'));
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _response = response.body; // 받은 응답을 화면에 표시
+        });
+      } else {
+        setState(() {
+          _response = 'Failed to load data: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _response = 'Error: $e';
+      });
+    }
   }
 
   @override
@@ -111,6 +124,17 @@ class _MyHomePageState extends State<MyHomePage> {
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const Text('API Response:'), // <--- 추가: API 응답 결과를 보여줄 텍스트
+            Text(
+              _response, // <--- 추가: 응답을 화면에 표시
+              style: Theme.of(context).textTheme.headlineMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20), // <--- 추가: 공간 확보
+            ElevatedButton(
+              onPressed: fetchPing, // <--- 추가: 버튼을 누르면 API 요청 실행
+              child: const Text('Ping Server'),
             ),
           ],
         ),
