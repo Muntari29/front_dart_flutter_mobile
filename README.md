@@ -2,6 +2,23 @@
 
 A new Flutter project.
 
+## Run Project
+flutter 프로젝트는 npm, yarn 패키지 관리 매니저로 사용되지 않습니다.
+
+### MacOS
+```
+flutter pub get
+open -a Simulator (또는 Simulator 직접 실행)
+flutter run
+시뮬레이터에서 Pj Flutter 앱 실행
+```
+
+### Hot Reload
+```
+실행 중인 터미널에서
+r <- 입력
+```
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
