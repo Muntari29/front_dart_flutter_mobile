@@ -9,27 +9,11 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Hot reload',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
@@ -47,103 +31,135 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  List<dynamic> _categories = [];
+  List<dynamic> _articles = [];
   String _response = "No response yet";
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
-  Future<void> fetchPing() async {
+  // Fetch Categories API
+  Future<void> fetchCategories() async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:8080/ping'));
+      final response =
+          await http.get(Uri.parse('http://localhost:8080/categories'));
 
       if (response.statusCode == 200) {
+        final List categories = json.decode(response.body);
         setState(() {
-          _response = response.body; // 받은 응답을 화면에 표시
+          _categories = categories;
+          _response = 'Fetched categories successfully';
         });
       } else {
         setState(() {
-          _response = 'Failed to load data: ${response.statusCode}';
+          _response = 'Failed to fetch categories: ${response.statusCode}';
         });
       }
     } catch (e) {
       setState(() {
-        _response = 'Error: $e';
+        _response = 'Error fetching categories: $e';
+      });
+    }
+  }
+
+  // Fetch Articles API
+  Future<void> fetchArticles({String? category}) async {
+    try {
+      final uri = Uri.http('localhost:8080', '/articles',
+          category != null ? {'category': category} : {});
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final List articles = json.decode(response.body);
+        setState(() {
+          _articles = articles;
+          _response = 'Fetched articles successfully';
+        });
+      } else {
+        setState(() {
+          _response = 'Failed to fetch articles: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _response = 'Error fetching articles: $e';
       });
     }
   }
 
   @override
+  void initState() {
+    super.initState();
+    fetchCategories(); // Fetch categories on app start
+    fetchArticles(); // Fetch all articles on app start
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const Text('API Response:'), // <--- 추가: API 응답 결과를 보여줄 텍스트
-            Text(
-              _response, // <--- 추가: 응답을 화면에 표시
-              style: Theme.of(context).textTheme.headlineMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20), // <--- 추가: 공간 확보
-            ElevatedButton(
-              onPressed: fetchPing, // <--- 추가: 버튼을 누르면 API 요청 실행
-              child: const Text('Ping Server'),
-            ),
-          ],
-        ),
+      body: Column(
+        children: [
+          // Categories List
+          Container(
+            padding: const EdgeInsets.all(10),
+            height: 100,
+            child: _categories.isEmpty
+                ? const Center(child: Text('Loading categories...'))
+                : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    itemBuilder: (context, index) {
+                      final category = _categories[index];
+                      return GestureDetector(
+                        onTap: () => fetchArticles(category: category['name']),
+                        child: Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          color: Colors.blueAccent,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Center(
+                              child: Text(
+                                category['name'],
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+
+          // Articles List
+          Expanded(
+            child: _articles.isEmpty
+                ? const Center(child: Text('No articles found'))
+                : ListView.builder(
+                    itemCount: _articles.length,
+                    itemBuilder: (context, index) {
+                      final article = _articles[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        child: ListTile(
+                          title: Text(
+                            article['value'],
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            "Category: ${article['category_name']}",
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
